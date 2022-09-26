@@ -1,5 +1,3 @@
-from ctypes import alignment
-import time
 import uuid
 from flask import Flask, request, jsonify, current_app, g
 import argparse
@@ -8,11 +6,11 @@ import pickle
 from sklearn.decomposition import PCA
 import json
 import sqlite3
-import app.preprocessing.generate_embeddings.occurrences as occ
-import app.preprocessing.generate_embeddings.embed as embed
-import app.preprocessing.tokenize as tokenize
-import app.preprocessing.sentencize as sentencize
-from app.preprocessing.generate_examples.alignment.align import Alignment
+import preprocessing.generate_embeddings.occurrences as occ
+import preprocessing.generate_embeddings.embed as embed
+import preprocessing.tokenize as tokenize
+import preprocessing.sentencize as sentencize
+from preprocessing.generate_examples.alignment.align import Alignment
 from preprocessing.WordVectors import WordVectors
 from flask_cors import CORS
 from pathlib import Path
@@ -27,7 +25,7 @@ ALIGNED_EMBEDDINGS_FOLDER = "app/artifacts/alignments/embeddings"
 SHIFTS_FOLDER = "app/artifacts/alignments/shifts"
 DISTANCES_FOLDER = "app/artifacts/alignments/distances"
 Q_FOLDER = "app/artifacts/alignments/Q"
-ALLOWED_EXTENSIONS = set(["txt"])
+ALLOWED_EXTENSIONS = {"txt"}
 sqlite3.register_adapter(np.float64, float)
 
 

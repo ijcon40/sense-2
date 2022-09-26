@@ -23,6 +23,12 @@ Install dependencies:
 
 `pip3 install -r requirements.txt`
 
+Make sure to run 
+
+`nltk.download('punkt')`
+
+In the virtual environment atleast once
+
 Start the flask server
 
 `./app/start.sh --clean-start`

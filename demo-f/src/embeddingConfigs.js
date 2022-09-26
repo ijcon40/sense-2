@@ -8,7 +8,7 @@ export const selectedEmbedding = reactive({
 export const availableEmbeddings = reactive({
 	"word2vec":{
 		  "size": 100,
-		  "window": 5,
-		  "minCount": 5
+		  "window": 10,
+		  "minCount": 50
 	}
 });

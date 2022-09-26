@@ -7,4 +7,4 @@ if [ "$1" = "--clean-start" ]; then
     export FLASK_CLEAN_START=true
 fi
 
-python3 app/run_gunicorn.py --bind localhost:5000 wsgi:app --timeout 99999999 --workers 2
+python3 app/run_gunicorn.py --bind localhost:5000 wsgi:app --timeout 99999999 --workers 5
