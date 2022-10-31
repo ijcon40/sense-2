@@ -254,7 +254,14 @@ def upload_file():
         t_filename = Path(str(uuid.uuid4()) + ".txt")
         t_path = Path(app.config["TOKENIZED_FOLDER"]) / t_filename
         # tokenize and write to t_path
-        tokenize.initial_tokenize(s_path, t_path)
+        if "tokenize" in d and d["tokenize"]:
+            tokenize.initial_tokenize(s_path, t_path)
+        else:
+            with s_path.open() as f_in:
+                with t_path.open("w") as f_out:
+                    for s in f_in:
+                        f_out.write(s)
+
         # generate occurrences
         occ_filename = Path(str(uuid.uuid4()) + ".txt")
         occ_path = Path(app.config["OCCURRENCES_FOLDER"]) / occ_filename

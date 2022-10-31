@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import {ref, computed} from "vue";
 
 const props = defineProps([
   "alignmentName",
@@ -7,6 +7,7 @@ const props = defineProps([
   "filterType",
   "commonWords",
   "unionWords",
+  "description"
 ]);
 
 // computed for filtered words
@@ -41,26 +42,29 @@ const activeColor = computed(() => {
     <h5 style="text-align: left">
       Alignment type: <b>{{ alignmentName }}</b>
     </h5>
+    <span style="text-align: left">
+       {{ description }}
+    </span>
     <table class="table table-striped">
       <thead>
-        <tr>
-          <th scope="col">#</th>
-          <th scope="col">Word</th>
-          <th scope="col">Shift (Cosine Distance)</th>
-        </tr>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Word</th>
+        <th scope="col">Shift (Cosine Distance)</th>
+      </tr>
       </thead>
       <tbody>
-        <tr
+      <tr
           v-for="(word, index) in filteredWords"
           :key="index"
           :style="{ background: activeColor }"
-        >
-          <th scope="row">{{ index + 1 }}</th>
-          <td>
-            <a href="#!" @click="$emit('selectWord', word[0])">{{ word[0] }}</a>
-          </td>
-          <td>{{ word[1].toFixed(2) }}</td>
-        </tr>
+      >
+        <th scope="row">{{ index + 1 }}</th>
+        <td>
+          <a href="#!" @click="$emit('selectWord', word[0])">{{ word[0] }}</a>
+        </td>
+        <td>{{ word[1].toFixed(2) }}</td>
+      </tr>
       </tbody>
     </table>
   </div>

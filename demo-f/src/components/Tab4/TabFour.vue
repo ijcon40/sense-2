@@ -53,6 +53,7 @@ watchEffect(async () => {
   display.value = props.selectedAlignments.map((al, i) => {
     return {
       id: al.id,
+      description:al.description,
       name: al.name,
       words: data.find((d) => d.alignment_id === al.id).shifted_words,
       unionWords: [],
@@ -158,6 +159,7 @@ const common_words = computed(() => {
       <div v-for="alignment in triple" class="col-4">
         <MostShifted
           :alignmentName="alignment.name"
+          :description="alignment.description"
           :words="alignment.words"
           :filter-type="filtertype"
           :common-words="common_words"

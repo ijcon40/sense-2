@@ -2,11 +2,10 @@ from time import time
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from app.preprocessing.WordVectors import WordVectors
-import app.preprocessing.generate_embeddings.occurrences as occ
+import preprocessing.generate_embeddings.occurrences as occ
 from .global_align import GlobalAlignConfig
 from .noise_aware_align import NoiseAwareAlignConfig
 from .s4_align import S4AlignConfig
-from pathlib import Path
 from sklearn.metrics.pairwise import paired_cosine_distances
 from sklearn.metrics import pairwise_distances
 

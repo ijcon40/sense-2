@@ -11,7 +11,7 @@ class WordVectors:
     Implements a WordVector class that performs mapping of word tokens to vectors
     """
 
-    def __init__(self, words=None, vectors=None, centered=True, normalized=False):
+    def __init__(self, words=None, vectors=None, centered=True, normalized=True):
         """
         words: BiMap of word, id pairs
         vectors: dimension len(words)*n numpy array containing floats

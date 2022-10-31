@@ -27,7 +27,7 @@ function ptClick(pt_id, pt_name) {
   store.selectedWord = null;
 }
 const chosenFile = ref(null);
-const newPtData = ref({ name: null, description: null });
+const newPtData = ref({ name: null, description: "--", tokenize: true });
 function onFileChange(e) {
   var files = e.target.files || e.dataTransfer.files;
   if (!files.length) return;
@@ -128,7 +128,7 @@ async function fileUpload() {
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title" id="addPlaintextModalLabel">
-                    Add Dataset 
+                    Add Dataset
                   </h5>
                   <button
                     type="button"
@@ -159,6 +159,10 @@ async function fileUpload() {
                     placeholder="Plaintext Description"
                     v-model="newPtData.description"
                   />
+                  <div class="form-check" style="text-align: left">
+                    <input class="form-check-input" type="checkbox" value="" v-model="newPtData.tokenize" id="tokenizeCheck">
+                    <label class="form-check-label" for="tokenizeCheck">Tokenize Corpus: {{newPtData.tokenize}}</label>
+                    </div>
                   <div
                     v-if="file_is_uploading"
                     class="alert alert-secondary"

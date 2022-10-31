@@ -4,7 +4,7 @@ from gensim.models import Word2Vec
 from app.preprocessing.WordVectors import WordVectors
 
 def w2v_embed(
-    file_in, size=100, window=5, min_count=5, wv_workers=48
+    file_in, size=100, window=5, min_count=20, wv_workers=64
 ):
     """
     generate Word2Vec embedding for sentences with given parameters.

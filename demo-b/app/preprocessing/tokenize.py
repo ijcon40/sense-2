@@ -7,7 +7,7 @@ contains functions to tokenize a scrubbed plaintext
 """
 
 # global compile regex
-r = re.compile("[a-zA-Z\.]+")
+r = re.compile("[a-zA-Z\.]+") # this is unused
 r_html = re.compile("<.*?>")  # Match HTML tags
 r_acronym = re.compile("\.")
 

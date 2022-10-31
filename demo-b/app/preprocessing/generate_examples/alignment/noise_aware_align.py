@@ -2,7 +2,6 @@ import numpy as np
 from scipy.linalg import orthogonal_procrustes
 
 from app.preprocessing.WordVectors import WordVectors
-from .global_align import GlobalAlignConfig
 
 # Noise-Aware alignment of word embeddings
 # Source: https://github.com/NoaKel/Noise-Aware-Alignment

@@ -34,8 +34,8 @@ class S4AlignConfig:
     def __init__(self,
     cls_model="nn",
     iters=100,
-    n_targets=10,
-    n_negatives=10,
+    n_targets=100,
+    n_negatives=100,
     fast=True,
     rate=0,
     t=0.5,
@@ -63,6 +63,7 @@ class S4AlignConfig:
                                          n_negatives=self.n_negatives, fast=self.fast,
                                          rate=self.rate, t=self.t, t_overlap=self.t_overlap,
                                          landmarks=self.landmarks,
+                                         debug=True,
                                          update_landmarks=self.update_landmarks)
         # global align config
         ga = GlobalAlignConfig()
@@ -153,7 +154,6 @@ def build_keras_model(dim):
     Return: Keras-Tensorflow2 model
     """
     h1_dim = 100
-    h2_dim = 100
     model = keras.Sequential(
         [
             keras.layers.Input(shape=(dim)),
@@ -171,118 +171,6 @@ def build_keras_model(dim):
     return model
 
 
-def threshold_crossvalidation(
-    wv1,
-    wv2,
-    iters=100,
-    n_fold=1,
-    n_targets=100,
-    n_negatives=100,
-    fast=True,
-    rate=0.5,
-    t=0.5,
-    landmarks=None,
-    t_overlap=1,
-    debug=False,
-):
-    """
-    Runs crossvalidation over self-supervised samples, carrying out a model
-    selection to determine the best cosine threshold to use in the final
-    prediction.
-
-    Arguments:
-        wv1, wv2    - input WordVectors - required to be intersected and ALIGNED before call
-        plot        - 1: plot functions in the end 0: do not plot
-        iters       - max no. of iterations
-        n_fold      - n-fold crossvalidation (1 - leave one out, 10 - 10-fold cv, etc.)
-        n_targets   - number of positive samples to generate
-        n_negatives - number of negative samples
-        fast        - use fast semantic change simulation
-        rate        - rate of semantic change injection
-        t           - classificaiton threshold (0.5)
-        t_overlap   - overlap threshold for (stop criterion)
-        landmarks   - list of words to use as landmarks (classification only)
-        debug       - toggles debugging mode on/off. Provides reports on several metrics. Slower.
-    Returns:
-        t - selected cosine threshold t
-    """
-
-    wv2_original = WordVectors(words=wv2.words, vectors=wv2.vectors.copy())
-    landmark_set = set(landmarks)
-    non_landmarks = [w for w in wv1.words if w not in landmark_set]
-
-    for iter in range(iters):
-
-        replace = dict()  # replacement dictionary
-        pos_samples = list()
-        pos_vectors = dict()
-
-        # Randomly sample words to inject change to
-        # If no word is flagged as non_landmarks, sample from all words
-        # In practice, this should never occur when selecting landmarks
-        # but only for classification when aligning on all words
-        if len(non_landmarks) > 0:
-            targets = np.random.choice(non_landmarks, n_targets)
-            # Make targets deterministic
-            # targets = non_landmarks
-        else:
-            targets = np.random.choice(wv1.words, n_targets)
-
-        for target in targets:
-
-            # Simulate semantic change in target word
-            v = inject_change_single(wv2_original, target, wv1.words, wv1[target], rate)
-
-            pos_vectors[target] = v
-
-            pos_samples.append(target)
-        # Convert to numpy array
-        pos_samples = np.array(pos_samples)
-        # Get negative samples from landmarks
-        # when p is none, we sample from all words
-        neg_samples = negative_samples(landmarks, n_negatives, p=None)
-        neg_vectors = {w: wv2_original[w] for w in neg_samples}
-        # Create dictionary of supervision samples (positive and negative)
-        # Mapping word -> vector
-        sup_vectors = {**neg_vectors, **pos_vectors}
-
-        # Prepare training data
-        words_train = np.concatenate((pos_samples, neg_samples))
-        # assign labels to positive and negative samples
-        y_train = [1] * len(pos_samples) + [0] * len(neg_samples)
-
-        # Stack columns to shuffle data and labels together
-        train = np.column_stack((words_train, y_train))
-        # Shuffle batch
-        np.random.shuffle(train)
-        # Detach data and labels
-        words_train = train[:, 0]
-        y_train = train[:, -1].astype(int)
-
-        # Calculate cosine distance of training samples
-        x_train = np.array([cosine(wv1[w], sup_vectors[w]) for w in words_train])
-
-        # t_pool = [0.2, 0.7]
-        t_pool = np.arange(0.2, 1, 0.1)
-
-        best_acc = 0
-        best_t = 0
-        for t_ in t_pool:
-            acc = 0
-            for i in range(0, len(x_train), n_fold):
-                x_cv = x_train[i : i + n_fold]
-                y_true = y_train[i : i + n_fold]
-                y_hat = x_cv > t_
-                acc += sum(y_hat == y_true) / len(x_cv)
-            acc = acc / (len(x_train) // n_fold)
-            if acc > best_acc:
-                best_acc = acc
-                best_t = t_
-                print("- New best t", t_, acc)
-
-    return best_t
-
-
 def s4(
     wv1,
     wv2,
@@ -291,11 +179,11 @@ def s4(
     cls_model="nn",
     iters=100,
     n_targets=10,
-    n_negatives=10,
+    n_negatives=100,
     fast=True,
     rate=0,
     t=0.5,
-    t_overlap=1,
+    t_overlap=1.0,
     landmarks=None,
     update_landmarks=True,
     return_model=False,
@@ -356,10 +244,11 @@ def s4(
         if landmarks == None:
             wv1, wv2, Q = ga.align(wv1, wv2)  # start from global alignment
             landmark_dists = [euclidean(u, v) for u, v in zip(wv1.vectors, wv2.vectors)]
-            landmark_args = np.argsort(landmark_dists)
+            wv1_words = wv1.get_words()
+            landmark_args = np.argsort(landmark_dists)  # sorts ascending
             landmarks = [
-                wv1.get_words()[i]
-                for i in landmark_args[: int(len(wv1.get_words()) * 0.5)]
+                wv1_words[i]
+                for i in landmark_args[: int(len(wv1_words) * 0.5)]
             ]
             # landmarks = np.random.choice(wv1.words, int(len(wv1)*0.5))
         landmark_set = set(landmarks)
@@ -396,8 +285,8 @@ def s4(
     cumulative_cos_in = list()
     cumulative_cos_out = list()
 
-    prev_landmarks = set(landmarks)
     for iter in range(iters):
+        wv1_words = wv1.get_words()
 
         pos_samples = list()
         pos_vectors = dict()
@@ -411,8 +300,7 @@ def s4(
             # Make targets deterministic
             # targets = non_landmarks
         else:
-            targets = np.random.choice(wv1.get_words(), n_targets)
-
+            targets = np.random.choice(wv1_words, n_targets)
         for target in targets:
 
             # Simulate semantic change in target word
@@ -444,7 +332,6 @@ def s4(
         # Detach data and labels
         words_train = train[:, 0]
         y_train = train[:, -1].astype(int)
-
         x_train = np.array([np.append(wv1[w], sup_vectors[w]) for w in words_train])
 
         # Append history
@@ -513,6 +400,8 @@ def s4(
 
         y_predict = predict_real > t
 
+        prev_landmarks = set(landmarks)
+
         if update_landmarks:
             landmarks = [
                 wv1.get_word(i) for i in range(len(wv1.words)) if predict_real[i] < t
@@ -530,8 +419,6 @@ def s4(
         cumulative_overlap_hist.append(
             np.mean(overlap_hist[-avg_window:])
         )  # store mean
-
-        prev_landmarks = set(landmarks)
 
         verbose_print(
             "> %3d | L %4d | l(in): %.2f | l(out): %.2f | loss: %.2f | overlap %.2f | acc: %.2f"

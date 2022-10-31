@@ -1,4 +1,3 @@
-from tkinter import W
 from scipy.linalg import orthogonal_procrustes
 import numpy as np
 from app.preprocessing.WordVectors import WordVectors
@@ -12,11 +11,13 @@ class GlobalAlignConfig:
         anchor_bot=None,
         anchor_random=None,
         anchor_words=None,
-        exclude=[],
+        exclude=None,
     ):
         """
         initializes a global alignment config
         """
+        if exclude is None:
+            exclude = []
         self._anchor_indices = anchor_indices
         self._anchor_top = anchor_top
         self._anchor_bot = anchor_bot
@@ -74,12 +75,12 @@ class GlobalAlignConfig:
             v1 = [
                 wv1.vectors[-i]
                 for i in range(self._anchor_bot)
-                if wv1.get_word(i) not in self._exclude
+                if wv1.get_word(-i) not in self._exclude
             ]
             v2 = [
                 wv2.vectors[-i]
                 for i in range(self._anchor_bot)
-                if wv2.get_word(i) not in self._exclude
+                if wv2.get_word(-i) not in self._exclude
             ]
         elif self._anchor_random is not None:
             anchors = np.random.choice(range(len(wv1.vectors)), self._anchor_random)
