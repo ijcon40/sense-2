@@ -14,10 +14,12 @@ from preprocessing.generate_examples.alignment.align import Alignment
 from preprocessing.WordVectors import WordVectors
 from flask_cors import CORS
 from pathlib import Path
+
 DATABASE = "app/db/demo_app.db"
 UPLOAD_FOLDER = "app/artifacts/uploads"
 SCRUBBED_FOLDER = "app/artifacts/scrubbed"
 OCCURRENCES_FOLDER = "app/artifacts/occurrences"
+COUNTS_FOLDER = "app/artifacts/counts"
 TOKENIZED_FOLDER = "app/artifacts/tokenized"
 EMBEDDINGS_FOLDER = "app/artifacts/embeddings"
 COMMON_WORDS_FOLDER = "app/artifacts/alignments/common_words"
@@ -32,56 +34,18 @@ sqlite3.register_adapter(np.float64, float)
 def clean_start():
     # reset the database
     init_db()
-    # delete all files in the uploads folder, preserving gitignore
-    for file in Path(UPLOAD_FOLDER).glob("*"):
-        if file.name == ".gitignore":
-            continue
-        file.unlink()
-    # delete all files in the scrubbed folder, preserving gitignore
-    for file in Path(SCRUBBED_FOLDER).glob("*"):
-        if file.name == ".gitignore":
-            continue
-        file.unlink()
-    # delete all files in the occurrences folder, preserving gitignore
-    for f in Path(OCCURRENCES_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the tokenized folder, preserving gitignore
-    for f in Path(TOKENIZED_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the embeddings folder, preserving gitignore
-    for f in Path(EMBEDDINGS_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the common words folder, preserving gitignore
-    for f in Path(COMMON_WORDS_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the aligned embeddings folder, preserving gitignore
-    for f in Path(ALIGNED_EMBEDDINGS_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the shifts folder, preserving gitignore
-    for f in Path(SHIFTS_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the distances folder, preserving gitignore
-    for f in Path(DISTANCES_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
-    # delete all files in the Q folder, preserving gitignore
-    for f in Path(Q_FOLDER).glob("*"):
-        if f.name == ".gitignore":
-            continue
-        f.unlink()
+    wipe_folders = [UPLOAD_FOLDER, SCRUBBED_FOLDER, OCCURRENCES_FOLDER, TOKENIZED_FOLDER, EMBEDDINGS_FOLDER,
+                    COMMON_WORDS_FOLDER, ALIGNED_EMBEDDINGS_FOLDER, SHIFTS_FOLDER, DISTANCES_FOLDER, Q_FOLDER,
+                    COUNTS_FOLDER]
+
+    def wipe_folder(folder_path):
+        for file in Path(folder_path).glob("*"):
+            if file.name == ".gitignore":
+                continue
+            file.unlink()
+
+    for folder in wipe_folders:
+        wipe_folder(folder)
 
 
 def allowed_file(filename):
@@ -158,6 +122,7 @@ app.config.from_prefixed_env()
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["SCRUBBED_FOLDER"] = SCRUBBED_FOLDER
 app.config["OCCURRENCES_FOLDER"] = OCCURRENCES_FOLDER
+app.config["COUNTS_FOLDER"] = COUNTS_FOLDER
 app.config["TOKENIZED_FOLDER"] = TOKENIZED_FOLDER
 app.config["EMBEDDINGS_FOLDER"] = EMBEDDINGS_FOLDER
 app.config["COMMON_WORDS_FOLDER"] = COMMON_WORDS_FOLDER
@@ -265,13 +230,18 @@ def upload_file():
         # generate occurrences
         occ_filename = Path(str(uuid.uuid4()) + ".txt")
         occ_path = Path(app.config["OCCURRENCES_FOLDER"]) / occ_filename
-        occs = occ.get_occurrences(t_path)
+        occs, counts = occ.get_occurrences(t_path)
         # pickle dump occs to occ_path
         with open(occ_path, "wb+") as f:
             pickle.dump(occs, f)
+
+        counts_filename = Path(str(uuid.uuid4()) + ".pickle")
+        c_path = Path(app.config["COUNTS_FOLDER"]) / counts_filename
+        with open(c_path, "wb+") as f:
+            pickle.dump(counts, f, protocol=pickle.HIGHEST_PROTOCOL)
         # insert dataset_name, dataset_description, f_path, s_path, t_path, and occ_path into the database
         dataset_id = write_db_ret_last(
-            "INSERT INTO plaintexts (name, description, p_path, s_path, t_path, occ_path) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO plaintexts (name, description, p_path, s_path, t_path, occ_path, c_path) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 dataset_name,
                 dataset_description,
@@ -279,6 +249,7 @@ def upload_file():
                 str(s_path),
                 str(t_path),
                 str(occ_path),
+                str(c_path)
             ),
         )
         return (
@@ -372,7 +343,9 @@ def generate_alignment():
     if "alignmentType" not in d:
         return jsonify({"error": "No alignmentType in the request"}), 400
     if "settings" not in d:
-        return jsonify({"error": "No settings in the request"}), 400    
+        return jsonify({"error": "No settings in the request"}), 400
+    if "topKSettings" not in d:
+        return jsonify({"error": "No occurrence filter settings in the request"}), 400
     # unpack the request
     e1_id = max(d["e1_id"], d["e2_id"])
     e2_id = min(d["e1_id"], d["e2_id"])
@@ -380,6 +353,7 @@ def generate_alignment():
     description = d["description"]
     alignment_type = d["alignmentType"]
     config = d["settings"]
+    top_k_config = d["topKSettings"]
     # print the values
     print("e1_id: " + str(e1_id))
     print("e2_id: " + str(e2_id))
@@ -387,7 +361,7 @@ def generate_alignment():
     print("description: " + description)
     print("alignment_type: " + alignment_type)
     print("settings: " + str(config))
-    
+
     # if the embedding ids are the same
     if e1_id == e2_id:
         return jsonify({"error": "Cannot align embeddings with themselves"}), 400
@@ -402,15 +376,26 @@ def generate_alignment():
         return jsonify({"error": f"Invalid embedding id: {e2_id}"}), 400
     e2wvp = Path(e2["wv_path"])
     # get the wv object for the first embedding
+    # load occurrence data and generate maps for each word vector
+
     wv1 = WordVectors.from_file(e1wvp)
     # get the wv object for the second embedding
     wv2 = WordVectors.from_file(e2wvp)
     # get the words and vectors for the second alignment
 
+    c_path1 = query_db("SELECT p.c_path FROM embeddings e LEFT JOIN plaintexts p on p.id = e.pt_id  WHERE e.id = ?", (e1_id,), one=True)['c_path']
+    c_path2 = query_db("SELECT p.c_path FROM embeddings e LEFT JOIN plaintexts p on p.id = e.pt_id  WHERE e.id = ?", (e2_id,), one=True)['c_path']
+
+    with open(c_path1, "rb") as input_file:
+        counts_1 = pickle.load(input_file)
+    with open(c_path2, "rb") as input_file:
+        counts_2 = pickle.load(input_file)
+
     # generate the alignment (computes the two alignment matrices, the shifts, and the distances)
     try:
-        a = Alignment.from_wv_and_config(wv1, wv2, alignment_type, config)
+        a = Alignment.from_wv_and_config(wv1, wv2, alignment_type, config, top_k_config, counts_1, counts_2)
     except ValueError as e:
+        print(e)
         return jsonify({"error": str(e)}), 400
     # dump the common words to disk
     c_fn = Path(str(uuid.uuid4()) + ".pickle")
@@ -548,12 +533,12 @@ def get_top_shifted_words():
     c_path = Path(r["c_path"])
     c = pickle.load(open(c_path, "rb"))
     try:
-        ts = Alignment.top_shifted_words(c, s, num_words) 
+        ts = Alignment.top_shifted_words(c, s, num_words)
     except ValueError as e:
         return jsonify({"message": str(e)}), 400
 
-    
     return jsonify({"message": "Top shifted words retrieved", "shifted_words": ts, "alignment_id": a_id}), 200
+
 
 @app.route("/getRandomSentence", methods=["POST"])
 def get_random_sentence():
@@ -588,7 +573,7 @@ def get_random_sentence():
     # swap if not first
     if first == "false":
         e1_id, e2_id = e2_id, e1_id
-    
+
     q_path = Path(a["q_path"])
 
     # generate examples
@@ -630,7 +615,6 @@ def get_random_sentence():
         word, occs1, occs2, s1_po, s2_po, Q, wv1, wv2
     )
     return jsonify({"message": "Example sentences retrieved", "sentences": sents}), 200
-
 
 
 @app.route("/getExampleSentences", methods=["POST"])

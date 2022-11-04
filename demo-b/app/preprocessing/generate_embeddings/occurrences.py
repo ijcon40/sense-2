@@ -19,15 +19,19 @@ def get_occurrences(file_in, limit=2000, workers=48):
     """
     # read in the lines
     occurrences = dict()
+    counts = dict()
     with file_in.open() as f:
         with Pool(workers) as p:
             for i, line in p.map(tok_w_i, enumerate(f)):
                 for tok in line:
                     if tok not in occurrences:
                         occurrences[tok] = set()
+                    if tok not in counts:
+                        counts[tok] = 0
+                    counts[tok]+=1
                     if len(occurrences[tok]) < limit:
                         occurrences[tok].add(i)
-    return occurrences
+    return occurrences, counts
 
 
 

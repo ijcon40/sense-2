@@ -214,6 +214,8 @@ onMounted(() => {
                           id="description"
                           v-model="pt1embeddingForm.description"
                       />
+                      <small id="descriptionTag" class="d-flex justify-content-start text-muted">Description will be
+                      auto-generated if left blank</small>
                     </div>
                     <div class="form-group mb-3">
                       <EmbeddingSettings></EmbeddingSettings>
@@ -279,7 +281,7 @@ onMounted(() => {
                 <div class="modal-body">
                   <form>
                     <div class="form-group mb-3">
-                      <label for="name">Name</label>
+                      <label for="name" class="d-flex justify-content-start">Name</label>
                       <input
                           type="text"
                           class="form-control"
@@ -288,13 +290,15 @@ onMounted(() => {
                       />
                     </div>
                     <div class="form-group mb-3">
-                      <label for="description">Description</label>
+                      <label for="description" class="d-flex justify-content-start">Description</label>
                       <input
                           type="text"
                           class="form-control"
                           id="description"
                           v-model="pt2embeddingForm.description"
                       />
+                      <small id="descriptionTag" class="d-flex justify-content-start text-muted">Description will be
+                      auto-generated if left blank</small>
                     </div>
                     <div class="form-group mb-3">
                       <EmbeddingSettings></EmbeddingSettings>

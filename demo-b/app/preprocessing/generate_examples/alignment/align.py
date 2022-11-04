@@ -10,7 +10,6 @@ from sklearn.metrics.pairwise import paired_cosine_distances
 from sklearn.metrics import pairwise_distances
 
 
-
 class Alignment:
     def __init__(self, common, v1, v2, shifts, dists, Q):
         """
@@ -27,6 +26,7 @@ class Alignment:
         self.shifts = shifts
         self.dists = dists
         self.Q = Q
+
     @staticmethod
     def top_shifted_words(common, shifts, num_words=10):
         """
@@ -44,13 +44,14 @@ class Alignment:
             return []
 
         # get the top shifted words
-        num_words = min(num_words, len(shifts)-1)
-        indices = np.argpartition(shifts, -1*num_words)[-1*num_words:]
+        num_words = min(num_words, len(shifts) - 1)
+        indices = np.argpartition(shifts, -1 * num_words)[-1 * num_words:]
         top_shifted_words = [(common[i], shifts[i]) for i in indices]
         top_shifted_words.sort(key=lambda x: x[1], reverse=True)
         return top_shifted_words
+
     @staticmethod
-    def get_context(common, v1, v2, dists, target, first, num_neighbors = 10):
+    def get_context(common, v1, v2, dists, target, first, num_neighbors=10):
         """
         get the nearest neighbors of the target word in the adjacent context
         """
@@ -77,7 +78,7 @@ class Alignment:
         return words, distances, vectors, iv
 
     @staticmethod
-    def from_wv_and_config(wv1, wv2, atype, config_dict):
+    def from_wv_and_config(wv1, wv2, atype, config_dict, top_k_config, counts1, counts2):
         """
         generates an alignment object from wv1 and wv2
         assumes the embeddings have already been intersected
@@ -91,7 +92,22 @@ class Alignment:
 
         cfg_obj = Alignment.config_from_dict(atype, config_dict)
         # intersect wv1, wv2
-        wv1, wv2 = WordVectors.intersect(wv1, wv2)
+        wv1, wv2, wv0_order = WordVectors.intersect(wv1, wv2)
+        # filter based on the highest shared occurrences
+        if top_k_config['type']:
+            wv_occ_filtered = wv0_order
+            if top_k_config['type'] == 'percent':
+                if top_k_config['value'] < 100:
+                    wv0_order.sort(reverse=True, key=lambda x: counts1[x] + counts2[x])
+                    wv_occ_filtered = wv0_order[0: int((top_k_config['value'] / 100.0) * len(wv0_order))]
+            if top_k_config['type'] == 'topk':
+                max_len = min([len(wv0_order), top_k_config['value']])
+                wv0_order.sort(reverse=True, key=lambda x: counts1[x] + counts2[x])
+                wv_occ_filtered = wv0_order[0: max_len]
+            wv1_order = [w for w in wv1.get_words() if w in wv_occ_filtered]
+            wv2_order = [w for w in wv2.get_words() if w in wv_occ_filtered]
+            wv1 = WordVectors(wv1_order, np.array([wv1.get_vector(w) for w in wv1_order]))
+            wv2 = WordVectors(wv2_order, np.array([wv2.get_vector(w) for w in wv2_order]))
         wv1_aligned, _, Q = cfg_obj.align(wv1, wv2)
         # vectors for each word
         v1 = wv1_aligned.vectors
@@ -153,6 +169,7 @@ class Alignment:
             end = time()
             print("Computing pairwise distances took {} seconds".format(end - start))
         return dists
+
     @staticmethod
     def get_example_sentences(target, occ1, occ2, spt_path1, spt_path2, Q, wv1, wv2, max_sent=1000):
         """
@@ -182,7 +199,7 @@ class Alignment:
             order=None
         )
         indices = indices[:min(len(indices), max_sent)]
-        spt1inds =  []
+        spt1inds = []
         spt2inds = []
         used_i = set()
         used_j = set()
@@ -198,7 +215,6 @@ class Alignment:
         for i1, i2 in zip(spt1inds, spt2inds):
             sents.append((occ.line_from_file(spt_path1, i1), occ.line_from_file(spt_path2, i2)))
         return sents
-
 
     @staticmethod
     def get_random_sentence(target, occ1, occ2, spt_path1, spt_path2, Q, wv1, wv2, max_sent=1000):
@@ -239,13 +255,10 @@ class Alignment:
         indices = indices[:min(len(indices), max_sent)]
         spt2inds = []
         for ind in indices:
-            j = ind 
+            j = ind
             spt2inds.append(indices2[j])
         sents = []
         for i2 in spt2inds:
             sents.append(occ.line_from_file(spt_path2, i2))
         ts = occ.line_from_file(spt_path1, indices1[i])
         return ts, sents
-
-
-        

@@ -9,8 +9,9 @@ create table plaintexts (
     s_path varchar not null,
     -- path to the tokenized plaintext 
     t_path varchar not null,
-    occ_path varchar not null
-
+    occ_path varchar not null,
+    -- path to the token counts
+    c_path varchar not null
 );
 
 drop table if exists embeddings;
@@ -45,6 +46,6 @@ create table alignments (
   -- path to q
   q_path varchar not null,
   -- foreign key constraints, on delete cascade
-  foreign key (e1_id) references embeddings(id) on delete cascade
+  foreign key (e1_id) references embeddings(id) on delete cascade,
   foreign key (e2_id) references embeddings(id) on delete cascade
 );

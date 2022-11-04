@@ -40,8 +40,8 @@ class ExampleSentencesTest(unittest.TestCase):
         wv2 = embed.generate_embedding(pt2_s)
         print("embeddings generated")
         # generate occurrences map for the embeddings
-        occs1 = occ.get_occurrences(pt1_s)
-        occs2 = occ.get_occurrences(pt2_s)
+        occs1, _ = occ.get_occurrences(pt1_s)
+        occs2, _ = occ.get_occurrences(pt2_s)
         print("occurrences generated")
         # create global alignment config to align the two wv using the default global align
         cfg = galign.GlobalAlignConfig()

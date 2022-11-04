@@ -4,7 +4,7 @@ import {store} from "../../store.js";
 import {togglePush} from "../../Queue.js";
 
 const alignments = ref(null);
-import {availableAlignments, selectedAlignment} from "../../alignmentConfigs.js";
+import {availableAlignments, selectedAlignment, topKOptions} from "../../alignmentConfigs.js";
 import AlignmentSettings from "./AlignmentSettings.vue";
 
 const alignmentForm = ref({
@@ -23,6 +23,7 @@ function generateAlignment() {
     return;
   }
   alignmentForm.value.alignmentType = selectedAlignment.alignmentType;
+  alignmentForm.value.topKSettings = topKOptions[selectedAlignment.topKType];
   alignmentForm.value.settings = availableAlignments[selectedAlignment.alignmentType];
   const description = alignmentForm.value.description || JSON.stringify({
     type: alignmentForm.value.alignmentType,

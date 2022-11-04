@@ -226,4 +226,4 @@ class WordVectors:
             vectors = np.array([wv.get_vector(w) for w in wv0_order])
             wv_out.append(WordVectors(wv0_order, vectors))
         end = time.time()
-        return wv_out
+        return *wv_out, wv0_order
