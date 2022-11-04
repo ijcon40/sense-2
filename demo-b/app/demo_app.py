@@ -114,6 +114,59 @@ def query_db(query, args=(), one=False):
     return (rv[0] if rv else None) if one else rv
 
 
+def delete_table_record(table, id):
+    return query_db("DELETE FROM ? WHERE id = ? RETURNING *", (table,id,), one=True)
+
+def delete_alignment(id):
+    deleted_alignment = delete_table_record('alignments', id)
+    return deleted_alignment
+
+def delete_embedding(id):
+    deleted_embedding = delete_table_record('embeddings', id)
+    return deleted_embedding
+
+def delete_plaintext(id):
+    deleted_plaintext = delete_table_record('plaintexts', id)
+    return deleted_plaintext
+
+def get_embeddings_references(embedding_id):
+    alignments_query = """
+    select id from alignments where e1_id = ? or e2_id = ?
+    """
+    alignments_ids = query_db(alignments_query, (embedding_id, ))
+    return [alignment_obj['id'] for alignment_obj in alignments_ids]
+
+def delete_plaintext_references(plaintext_id):
+    embeddings_query = """
+    select e.id from plaintexts p INNER JOIN embeddings e on p.id = e.pt_id where p.id= ?
+    """
+    embedding_ids = query_db(embeddings_query, (plaintext_id, ))
+    embedding_ids = [e['id'] for e in embedding_ids]
+    alignment_ids = []
+    for e_id in embedding_ids:
+        alignment_ids.extend(get_embeddings_references(e_id))
+    deleted_objects = []
+    for a_id in alignment_ids:
+        deleted_objects.append(delete_alignment(a_id))
+    # go in and delete all the alignments, storing the objects
+
+    for e_id in embedding_ids:
+        deleted_objects.append(delete_embedding(e_id))
+    # go in and delete all the embeddings storing the objects
+
+    deleted_objects.append(delete_plaintext(plaintext_id))
+
+    for object in deleted_objects:
+        path_keys = [ key for key in object.keys() if '_path' in key]
+        for path in path_keys:
+            file = Path(path)
+            file.unlink()
+
+
+
+
+
+
 app = Flask(__name__)
 # load some config from prefixed environment variables
 # atm this is just the CLEAN_START flag
