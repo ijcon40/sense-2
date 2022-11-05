@@ -105,6 +105,7 @@ async function fileUpload() {
     </div>
     <div class="row">
       <div class="col-12 mb-4">
+        <!-- TODO Add Deletion Button trigger modal -->
         <div class="d-flex justify-content-end">
           <!-- Button trigger modal -->
           <button

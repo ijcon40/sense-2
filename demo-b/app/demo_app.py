@@ -115,56 +115,56 @@ def query_db(query, args=(), one=False):
 
 
 def delete_table_record(table, id):
-    return query_db("DELETE FROM ? WHERE id = ? RETURNING *", (table,id,), one=True)
+    return query_db("DELETE FROM ? WHERE id = ? RETURNING *", (table, id,), one=True)
+
 
 def delete_alignment(id):
     deleted_alignment = delete_table_record('alignments', id)
     return deleted_alignment
 
+
 def delete_embedding(id):
     deleted_embedding = delete_table_record('embeddings', id)
     return deleted_embedding
+
 
 def delete_plaintext(id):
     deleted_plaintext = delete_table_record('plaintexts', id)
     return deleted_plaintext
 
+
 def get_embeddings_references(embedding_id):
     alignments_query = """
     select id from alignments where e1_id = ? or e2_id = ?
     """
-    alignments_ids = query_db(alignments_query, (embedding_id, ))
+    alignments_ids = query_db(alignments_query, (embedding_id,))
     return [alignment_obj['id'] for alignment_obj in alignments_ids]
+
+
+def delete_embeddings_references(embedding_id):
+    alignment_ids = get_embeddings_references(embedding_id)
+    deleted_objects = []
+    for a_id in alignment_ids:
+        deleted_objects.append(delete_alignment(a_id))
+    deleted_objects.append(delete_embedding(embedding_id))
+    return deleted_objects
+
 
 def delete_plaintext_references(plaintext_id):
     embeddings_query = """
     select e.id from plaintexts p INNER JOIN embeddings e on p.id = e.pt_id where p.id= ?
     """
-    embedding_ids = query_db(embeddings_query, (plaintext_id, ))
+    embedding_ids = query_db(embeddings_query, (plaintext_id,))
     embedding_ids = [e['id'] for e in embedding_ids]
-    alignment_ids = []
-    for e_id in embedding_ids:
-        alignment_ids.extend(get_embeddings_references(e_id))
+
     deleted_objects = []
-    for a_id in alignment_ids:
-        deleted_objects.append(delete_alignment(a_id))
-    # go in and delete all the alignments, storing the objects
 
-    for e_id in embedding_ids:
-        deleted_objects.append(delete_embedding(e_id))
+    for embedding_id in embedding_ids:
+        deleted_objects.extend(delete_embeddings_references(embedding_id))
     # go in and delete all the embeddings storing the objects
-
     deleted_objects.append(delete_plaintext(plaintext_id))
 
-    for object in deleted_objects:
-        path_keys = [ key for key in object.keys() if '_path' in key]
-        for path in path_keys:
-            file = Path(path)
-            file.unlink()
-
-
-
-
+    return deleted_objects
 
 
 app = Flask(__name__)
@@ -195,6 +195,30 @@ def close_connection(exception):
     db = getattr(g, "_database", None)
     if db is not None:
         db.close()
+
+
+@app.route("/deleteObject")
+def delete_object():
+    data = request.get_json()
+    if "type" not in data:
+        return jsonify({"error": "No type provided"})
+    if "ids" not in data:
+        return jsonify({"error": "No ids provided"})
+    type = data["type"]
+    ids = data["ids"]
+    for id in ids:
+        deleted_objects = []
+        if type == "plaintext":
+            deleted_objects = delete_plaintext_references(id)
+        if type == "embedding":
+            deleted_objects = delete_embeddings_references(id)
+        if type == "alignment":
+            deleted_objects.append(delete_alignment(id))
+        for object in deleted_objects:
+            path_keys = [key for key in object.keys() if '_path' in key]
+            for path in path_keys:
+                file = Path(path)
+                file.unlink()
 
 
 @app.route("/")
@@ -436,8 +460,12 @@ def generate_alignment():
     wv2 = WordVectors.from_file(e2wvp)
     # get the words and vectors for the second alignment
 
-    c_path1 = query_db("SELECT p.c_path FROM embeddings e LEFT JOIN plaintexts p on p.id = e.pt_id  WHERE e.id = ?", (e1_id,), one=True)['c_path']
-    c_path2 = query_db("SELECT p.c_path FROM embeddings e LEFT JOIN plaintexts p on p.id = e.pt_id  WHERE e.id = ?", (e2_id,), one=True)['c_path']
+    c_path1 = \
+    query_db("SELECT p.c_path FROM embeddings e LEFT JOIN plaintexts p on p.id = e.pt_id  WHERE e.id = ?", (e1_id,),
+             one=True)['c_path']
+    c_path2 = \
+    query_db("SELECT p.c_path FROM embeddings e LEFT JOIN plaintexts p on p.id = e.pt_id  WHERE e.id = ?", (e2_id,),
+             one=True)['c_path']
 
     with open(c_path1, "rb") as input_file:
         counts_1 = pickle.load(input_file)
