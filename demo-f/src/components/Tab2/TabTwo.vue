@@ -55,6 +55,20 @@ function generateEmbedding(embeddingForm) {
   });
 }
 
+async function deleteEmbeddings() {
+  const ids = [...store.selectedEmbeddings.forPt1.map(a => a.id), ...store.selectedEmbeddings.forPt2.map(a => a.id)]
+  await fetch("/api/deleteObject", {
+    method: "POST",
+    body: JSON.stringify({type: 'embedding', ids: ids}),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  store.selectedEmbeddings.forPt1.elements = []
+  store.selectedEmbeddings.forPt2.elements = []
+  await getEmbeddings()
+}
+
 function getEmbeddings() {
   fetch("/api/getEmbeddings", {
     method: "POST",
@@ -215,7 +229,7 @@ onMounted(() => {
                           v-model="pt1embeddingForm.description"
                       />
                       <small id="descriptionTag" class="d-flex justify-content-start text-muted">Description will be
-                      auto-generated if left blank</small>
+                        auto-generated if left blank</small>
                     </div>
                     <div class="form-group mb-3">
                       <EmbeddingSettings></EmbeddingSettings>
@@ -298,7 +312,7 @@ onMounted(() => {
                           v-model="pt2embeddingForm.description"
                       />
                       <small id="descriptionTag" class="d-flex justify-content-start text-muted">Description will be
-                      auto-generated if left blank</small>
+                        auto-generated if left blank</small>
                     </div>
                     <div class="form-group mb-3">
                       <EmbeddingSettings></EmbeddingSettings>
@@ -328,6 +342,19 @@ onMounted(() => {
           </div>
         </div>
       </div>
+    </div>
+    <div class="row">
+    <div class="ms-auto" style="max-width: 200px" v-if="[...store.selectedEmbeddings.forPt1.map(a => a.id), ...store.selectedEmbeddings.forPt2.map(a => a.id)].length>0">
+      <button
+          type="button"
+          class="btn btn-danger"
+          @click="deleteEmbeddings()"
+      >
+        {{
+          [...store.selectedEmbeddings.forPt1.map(a => a.id), ...store.selectedEmbeddings.forPt2.map(a => a.id)].length === 1 ? "Delete Embedding" : "Delete Embeddings"
+        }}
+      </button>
+    </div>
     </div>
   </div>
 </template>

@@ -16,6 +16,19 @@ const alignmentForm = ref({
   settings: null
 });
 
+async function deleteAlignments() {
+  const ids = store.selectedAlignments.map(a => a.id)
+  await fetch("/api/deleteObject", {
+    method: "POST",
+    body: JSON.stringify({type: 'alignment', ids: ids}),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  store.selectedAlignments.elements = []
+  await getAlignments()
+}
+
 function generateAlignment() {
 // error check name and description
   if (alignmentForm.value.name == null) {
@@ -23,7 +36,7 @@ function generateAlignment() {
     return;
   }
   alignmentForm.value.alignmentType = selectedAlignment.alignmentType;
-  alignmentForm.value.topKSettings = topKOptions[selectedAlignment.topKType]||{};
+  alignmentForm.value.topKSettings = topKOptions[selectedAlignment.topKType] || {};
   alignmentForm.value.settings = availableAlignments[selectedAlignment.alignmentType];
   const description = alignmentForm.value.description || JSON.stringify({
     type: alignmentForm.value.alignmentType,
@@ -111,6 +124,17 @@ onMounted(() => {
       <div class="col-12">
         <div class="d-flex justify-content-end">
           <!-- Button trigger modal -->
+          <div v-if="store.selectedAlignments.length>0" class="me-2">
+            <button
+                type="button"
+                class="btn btn-danger"
+                @click="deleteAlignments()"
+            >
+              {{
+                store.selectedAlignments.length === 1 ? "Delete Alignment" : "Delete Alignments"
+              }}
+            </button>
+          </div>
           <button
               type="button"
               class="btn btn-success"

@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { store } from "../../store.js";
-import { shiftPush } from "../../Queue.js";
+import {ref, onMounted} from "vue";
+import {store} from "../../store.js";
+import {shiftPush} from "../../Queue.js";
+
 const ptexts = ref(null);
 const file_is_uploading = ref(false);
 const upload_succeeded = ref(false);
@@ -10,34 +11,56 @@ function getPlainTexts() {
     method: "GET",
     headers: {},
   })
-    .then((res) => res.json())
-    .then((data) => {
-      // set the plaintexts to the data
-      ptexts.value = data;
-    });
+      .then((res) => res.json())
+      .then((data) => {
+        // set the plaintexts to the data
+        ptexts.value = data;
+      });
 }
+
 onMounted(() => {
   getPlainTexts();
 });
+
 function ptClick(pt_id, pt_name) {
-  shiftPush(store.selectedPlaintexts, { id: pt_id, name: pt_name }, 2);
+  shiftPush(store.selectedPlaintexts, {id: pt_id, name: pt_name}, 2);
   // deselect embeddings and alignments
   store.selectedEmbeddings.elements = [];
   store.selectedAlignments.elements = [];
   store.selectedWord = null;
 }
+
 const chosenFile = ref(null);
-const newPtData = ref({ name: null, description: "--", tokenize: true });
+const newPtData = ref({name: null, description: "--", tokenize: true});
+
 function onFileChange(e) {
   var files = e.target.files || e.dataTransfer.files;
   if (!files.length) return;
   chosenFile.value = files[0];
 }
+
+function toggleModal(){
+  $('#addPlaintextModal').modal("toggle")
+}
+
 async function setFalseAfterDelay(item, delay) {
   setTimeout(() => {
     item.value = false;
   }, delay);
 }
+
+async function deletePlaintexts() {
+  await fetch("/api/deleteObject", {
+    method: "POST",
+    body: JSON.stringify({type: 'plaintext', ids: store.selectedPlaintexts.map(a => a.id)}),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  store.selectedPlaintexts.elements = []
+  await getPlainTexts()
+}
+
 async function fileUpload() {
   var formData = new FormData();
   formData.append("file", chosenFile.value);
@@ -47,19 +70,21 @@ async function fileUpload() {
     method: "POST",
     body: formData,
   })
-    .then((res) => res.json())
-    .then((data) => {
-      // error handling
-      if (data.error) {
-        console.log("Failed to upload the file");
-        console.log(data.error);
-        return;
-      }
-    });
+      .then((res) => res.json())
+      .then((data) => {
+        // error handling
+        if (data.error) {
+          console.log("Failed to upload the file");
+          console.log(data.error);
+          return;
+        }
+      });
   file_is_uploading.value = false;
   getPlainTexts();
   upload_succeeded.value = true;
-  setFalseAfterDelay(upload_succeeded, 3000);
+  await setFalseAfterDelay(upload_succeeded, 3000);
+  toggleModal();
+
 }
 </script>
 
@@ -75,13 +100,13 @@ async function fileUpload() {
     <div class="row">
       <div class="col mb-4" v-for="pt in ptexts" :key="pt.id">
         <a
-          href="#"
-          class="list-group-item-action"
-          style="text-decoration: none"
+            href="#"
+            class="list-group-item-action"
+            style="text-decoration: none"
         >
           <div
-            class="card"
-            :class="{
+              class="card"
+              :class="{
               'text-white': store.selectedPlaintexts
                 .map((pt) => pt.id)
                 .includes(pt.id),
@@ -89,7 +114,7 @@ async function fileUpload() {
                 .map((pt) => pt.id)
                 .includes(pt.id),
             }"
-            @click.prevent="ptClick(pt.id, pt.name)"
+              @click.prevent="ptClick(pt.id, pt.name)"
           >
             <div class="card-header">
               <h6>
@@ -108,6 +133,15 @@ async function fileUpload() {
         <!-- TODO Add Deletion Button trigger modal -->
         <div class="d-flex justify-content-end">
           <!-- Button trigger modal -->
+          <div class="me-md-2" v-if="store.selectedPlaintexts.length>0">
+            <button
+                type="button"
+                class="btn btn-danger"
+                @click="deletePlaintexts()"
+            >
+              {{ store.selectedPlaintexts.length === 1 ? "Delete Plaintext" : "Delete Plaintexts" }}
+            </button>
+          </div>
           <button
             type="button"
             class="btn btn-success"
@@ -118,82 +152,84 @@ async function fileUpload() {
           </button>
 
           <!-- Modal -->
-          <div
-            class="modal fade"
-            id="addPlaintextModal"
-            tabindex="-1"
-            aria-labelledby="addPlaintextModalLabel"
-            aria-hidden="true"
-          >
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="addPlaintextModalLabel">
-                    Add Dataset
-                  </h5>
-                  <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                  ></button>
-                </div>
-                <div class="modal-body">
-                  <div class="input-group mb-3">
-                    <input
-                      type="file"
-                      class="form-control"
-                      id="inputGroupFile02"
-                      v-on:change="onFileChange"
-                    />
-                    <!-- inputs for the plaintext name and description -->
+            <div
+                class="modal fade"
+                id="addPlaintextModal"
+                tabindex="-1"
+                aria-labelledby="addPlaintextModalLabel"
+                aria-hidden="true"
+            >
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="addPlaintextModalLabel">
+                      Add Dataset
+                    </h5>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                    ></button>
                   </div>
-                  <input
-                    type="text"
-                    class="form-control mb-3"
-                    placeholder="Plaintext Name"
-                    v-model="newPtData.name"
-                  />
-                  <input
-                    type="text"
-                    class="form-control mb-3"
-                    placeholder="Plaintext Description"
-                    v-model="newPtData.description"
-                  />
-                  <div class="form-check" style="text-align: left">
-                    <input class="form-check-input" type="checkbox" value="" v-model="newPtData.tokenize" id="tokenizeCheck">
-                    <label class="form-check-label" for="tokenizeCheck">Tokenize Corpus: {{newPtData.tokenize}}</label>
+                  <div class="modal-body">
+                    <div class="input-group mb-3">
+                      <input
+                          type="file"
+                          class="form-control"
+                          id="inputGroupFile02"
+                          v-on:change="onFileChange"
+                      />
+                      <!-- inputs for the plaintext name and description -->
                     </div>
-                  <div
-                    v-if="file_is_uploading"
-                    class="alert alert-secondary"
-                    role="alert"
-                  >
-                    File is uploading...
+                    <input
+                        type="text"
+                        class="form-control mb-3"
+                        placeholder="Plaintext Name"
+                        v-model="newPtData.name"
+                    />
+                    <input
+                        type="text"
+                        class="form-control mb-3"
+                        placeholder="Plaintext Description"
+                        v-model="newPtData.description"
+                    />
+                    <div class="form-check" style="text-align: left">
+                      <input class="form-check-input" type="checkbox" value="" v-model="newPtData.tokenize"
+                             id="tokenizeCheck">
+                      <label class="form-check-label" for="tokenizeCheck">Tokenize Corpus:
+                        {{ newPtData.tokenize }}</label>
+                    </div>
+                    <div
+                        v-if="file_is_uploading"
+                        class="alert alert-secondary"
+                        role="alert"
+                    >
+                      File is uploading...
+                    </div>
+                    <div
+                        v-if="upload_succeeded"
+                        class="alert alert-success"
+                        role="alert"
+                    >
+                      Plaintext Upload Successful
+                    </div>
                   </div>
-                  <div
-                    v-if="upload_succeeded"
-                    class="alert alert-success"
-                    role="alert"
-                  >
-		  Plaintext Upload Successful
-                  </div>
-                </div>
-                <div class="modal-footer">
-                  <button
-                    type="button"
-                    class="btn btn-secondary"
-                    data-bs-dismiss="modal"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    @click="fileUpload()"
-                  >
-                    Upload
-                  </button>
+                  <div class="modal-footer">
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
+                      Close
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        @click="fileUpload()"
+                    >
+                      Upload
+                    </button>
                 </div>
               </div>
             </div>

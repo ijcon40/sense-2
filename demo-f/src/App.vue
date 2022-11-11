@@ -52,7 +52,7 @@ const prevDisabled = computed(() => ({
 
 // text top right to display the plaintexts selected
 const plaintexts_selected = computed(() => {
-  if (store.selectedPlaintexts.length === 2 && active_tab.value != 0) {
+  if (store.selectedPlaintexts.length === 2 && active_tab.value !== 0) {
     return "Comparing " + "<b>" + store.selectedPlaintexts.elements[0].name + "</b>" + " and " + "<b>" + store.selectedPlaintexts.elements[1].name + "</b>";
   } 
   return null;

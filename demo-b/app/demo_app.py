@@ -115,7 +115,15 @@ def query_db(query, args=(), one=False):
 
 
 def delete_table_record(table, id):
-    return query_db("DELETE FROM ? WHERE id = ? RETURNING *", (table, id,), one=True)
+    select_query = f"SELECT * FROM {table} WHERE id = {id}"
+    delete_query = f"DELETE FROM {table} WHERE id = {id}"
+    deleted_record=query_db(select_query, one=True)
+    db = get_db()
+    cur = db.cursor()
+    cur.execute(delete_query)
+    cur.close()
+    db.commit()
+    return deleted_record
 
 
 def delete_alignment(id):
@@ -137,7 +145,7 @@ def get_embeddings_references(embedding_id):
     alignments_query = """
     select id from alignments where e1_id = ? or e2_id = ?
     """
-    alignments_ids = query_db(alignments_query, (embedding_id,))
+    alignments_ids = query_db(alignments_query, (embedding_id, embedding_id))
     return [alignment_obj['id'] for alignment_obj in alignments_ids]
 
 
@@ -197,7 +205,7 @@ def close_connection(exception):
         db.close()
 
 
-@app.route("/deleteObject")
+@app.route("/deleteObject",  methods=["POST"])
 def delete_object():
     data = request.get_json()
     if "type" not in data:
@@ -206,6 +214,8 @@ def delete_object():
         return jsonify({"error": "No ids provided"})
     type = data["type"]
     ids = data["ids"]
+    print(type)
+    print(ids)
     for id in ids:
         deleted_objects = []
         if type == "plaintext":
@@ -216,9 +226,11 @@ def delete_object():
             deleted_objects.append(delete_alignment(id))
         for object in deleted_objects:
             path_keys = [key for key in object.keys() if '_path' in key]
-            for path in path_keys:
+            for key in path_keys:
+                path = object[key]
                 file = Path(path)
                 file.unlink()
+    return {'status':'ok'}
 
 
 @app.route("/")
