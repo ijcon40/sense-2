@@ -10,13 +10,6 @@ const alignmentTypeOptions = computed(() => {
   return Object.keys(availableAlignments);
 });
 
-const topKKeys = computed(() => {
-      return Object.keys(topKOptions)
-    }
-)
-
-const formMax = selectedAlignment.topKType === 'Top % Tokens'?100:null
-const step = selectedAlignment.topKType === 'Top % Tokens'?0.01:1
 
 </script>
 
@@ -25,18 +18,6 @@ const step = selectedAlignment.topKType === 'Top % Tokens'?0.01:1
     <!-- form to configure the settings for an alignment-->
     <form>
       <!-- dropdown to select the alignment object to edit -->
-      <label class="d-flex justify-content-start" for="topKSelect">Token Occurrence Filter</label>
-      <div class="input-group">
-        <select class="form-select" id="topKSelect" v-model="selectedAlignment.topKType">
-          <option v-for="type in topKKeys" :value="type">{{ type }}</option>
-        </select>
-        <input type="number" class="form-control" id="cthresh" min="0" v-bind:max="formMax"
-               v-model="topKOptions[selectedAlignment.topKType].value" v-bind:step="step">
-      </div>
-      <small id="topKLabel"
-             class="d-flex justify-content-start text-muted mb-3">{{
-          selectedAlignment.topKType === 'Top % Tokens' ? 'A value over 100 will be treated as 100%' : 'A value greater than the shared vocabulary will be treated as max'
-        }}</small>
 
 
       <label class="d-flex justify-content-start" for="alignmentTypeSelect">Select Alignment Type</label>

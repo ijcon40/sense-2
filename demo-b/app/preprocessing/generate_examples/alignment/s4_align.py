@@ -241,7 +241,7 @@ def s4(
     # Begin alignment
     if update_landmarks:
         # Check if landmarks is initialized
-        if landmarks == None:
+        if landmarks is None:
             wv1, wv2, Q = ga.align(wv1, wv2)  # start from global alignment
             landmark_dists = [euclidean(u, v) for u, v in zip(wv1.vectors, wv2.vectors)]
             wv1_words = wv1.get_words()

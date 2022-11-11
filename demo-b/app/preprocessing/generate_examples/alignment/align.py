@@ -86,11 +86,7 @@ class Alignment:
         wv2: WordVectors object
         config_dict: dict() of the config for the alignment
         """
-        # print the atype and config_dict
-        print("atype:", atype)
-        print("config_dict:", config_dict)
-
-        cfg_obj = Alignment.config_from_dict(atype, config_dict)
+        landmarks = None
         # intersect wv1, wv2
         wv1, wv2, wv0_order = WordVectors.intersect(wv1, wv2)
         # filter based on the highest shared occurrences
@@ -104,10 +100,14 @@ class Alignment:
                 max_len = min([len(wv0_order), top_k_config['value']])
                 wv0_order.sort(reverse=True, key=lambda x: counts1[x] + counts2[x])
                 wv_occ_filtered = wv0_order[0: max_len]
-            wv1_order = [w for w in wv1.get_words() if w in wv_occ_filtered]
-            wv2_order = [w for w in wv2.get_words() if w in wv_occ_filtered]
-            wv1 = WordVectors(wv1_order, np.array([wv1.get_vector(w) for w in wv1_order]))
-            wv2 = WordVectors(wv2_order, np.array([wv2.get_vector(w) for w in wv2_order]))
+            # get the set of landmarks for use in the alignment
+            landmarks = wv_occ_filtered
+        if landmarks and atype in ("s4", "noise-aware"):
+            config_dict = {**config_dict, 'landmarks': landmarks}
+        # print the atype and config_dict
+        print("atype:", atype)
+        print("config_dict:", config_dict)
+        cfg_obj = Alignment.config_from_dict(atype, config_dict)
         wv1_aligned, _, Q = cfg_obj.align(wv1, wv2)
         # vectors for each word
         v1 = wv1_aligned.vectors
