@@ -197,6 +197,7 @@ app = Flask(__name__)
 # atm this is just the CLEAN_START flag
 app.config.from_prefixed_env()
 # remaining config
+app.config['DEBUG'] = True
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["SCRUBBED_FOLDER"] = SCRUBBED_FOLDER
 app.config["OCCURRENCES_FOLDER"] = OCCURRENCES_FOLDER
