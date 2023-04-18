@@ -15,6 +15,8 @@ from preprocessing.WordVectors import WordVectors
 from flask_cors import CORS
 from pathlib import Path
 from logging.config import dictConfig
+import shutil
+
 
 dictConfig({
     'version': 1,
@@ -314,7 +316,9 @@ def upload_file():
         # generate a random filename
         filename = Path(str(uuid.uuid4()) + ".txt")
         f_path = Path(app.config["UPLOAD_FOLDER"]) / filename
-        file.save(f_path)
+        with f_path.open('w') as open_file:
+            file.save(open_file)
+        print('saved file locally')
         # scrub the file and save the scrubbed copy
         # generate random scrub filename
         s_filename = Path(str(uuid.uuid4()) + ".txt")
@@ -327,14 +331,13 @@ def upload_file():
         t_path = Path(app.config["TOKENIZED_FOLDER"]) / t_filename
         # tokenize and write to t_path
         if "tokenize" in d and d["tokenize"]:
+            print('tokenizing')
             tokenize.initial_tokenize(s_path, t_path)
         else:
-            with s_path.open() as f_in:
-                with t_path.open("w") as f_out:
-                    for s in f_in:
-                        f_out.write(s)
+            shutil.copy(s_path, t_path)
 
         # generate occurrences
+        print('generating occurrences')
         occ_filename = Path(str(uuid.uuid4()) + ".txt")
         occ_path = Path(app.config["OCCURRENCES_FOLDER"]) / occ_filename
         occs, counts = occ.get_occurrences(t_path)

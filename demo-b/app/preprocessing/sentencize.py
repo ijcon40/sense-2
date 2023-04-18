@@ -53,10 +53,11 @@ def initial_scrub(in_path, out_path, workers=48):
     with in_path.open() as f_in:
         num_lines = len(f_in.readlines())
     sentences=[]
+    print('scrubbing file')
     with in_path.open() as f_in:
         # open file to write out, creating it if it doesn't exist
         with Pool(workers) as p:
-            for s_res in p.imap(scrub_line, f_in, chunksize=math.ceil(num_lines / workers)):
+            for s_res in tqdm(p.imap(scrub_line, f_in, chunksize=math.ceil(num_lines / workers))):
                 line_counter += 1
                 sentences.append(s_res)
     with out_path.open("w") as f_out:
