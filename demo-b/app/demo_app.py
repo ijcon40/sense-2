@@ -293,6 +293,7 @@ def upload_file():
     """
     upload a large file
     """
+    print('received file')
     # check if the post request has the file part
     if "file" not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
