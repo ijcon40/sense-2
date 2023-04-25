@@ -1,5 +1,5 @@
 import numpy as np
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import nltk
 from tqdm import tqdm
 
@@ -12,7 +12,7 @@ def tok_w_i(il):
     return (il[0], nltk.word_tokenize(il[1]))
 
 
-def get_occurrences(file_in, limit=2000, workers=48):
+def get_occurrences(file_in, limit=2000, workers=cpu_count()-1):
     """
     file_in: path object pointing to the plaintext
     limit: int - maximum number of lines to record as containing the word of interest

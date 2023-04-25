@@ -1,5 +1,5 @@
 import math
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import nltk
 from tqdm import tqdm
 import re
@@ -41,7 +41,7 @@ def scrub_line(line, min_sent_len=0, min_token_length=4):
     return scrubbed
 
 
-def initial_scrub(in_path, out_path, workers=48):
+def initial_scrub(in_path, out_path, workers=cpu_count()-1):
     """
     in_path: Path object to a plaintext_file
     out_path: Path object to the location we should write the scrubbed file
