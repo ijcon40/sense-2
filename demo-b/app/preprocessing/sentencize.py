@@ -1,6 +1,7 @@
 import math
 from multiprocessing import Pool
 import nltk
+from tqdm import tqdm
 import re
 
 def tokenize_words(text, min_length=0):
