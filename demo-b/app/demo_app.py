@@ -335,6 +335,7 @@ def upload_file():
             print('tokenizing')
             tokenize.initial_tokenize(s_path, t_path)
         else:
+            print('copying tokenized dataset')
             shutil.copy(s_path, t_path)
 
         # generate occurrences

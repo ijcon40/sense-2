@@ -61,6 +61,8 @@ def initial_scrub(in_path, out_path, workers=48):
             for s_res in tqdm(p.imap(scrub_line, f_in, chunksize=math.ceil(num_lines / workers))):
                 line_counter += 1
                 sentences.append(s_res)
+    print('writing to file')
     with out_path.open("w") as f_out:
         f_out.writelines(sentences)
+    print('wrote to file')
     return sentences
