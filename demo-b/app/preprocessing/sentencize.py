@@ -62,5 +62,5 @@ def initial_scrub(in_path, out_path, workers=48):
                 line_counter += 1
                 sentences.append(s_res)
     with out_path.open("w") as f_out:
-        f_out.write("".join(sentences))
+        f_out.writelines(sentences)
     return sentences
