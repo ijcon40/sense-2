@@ -315,10 +315,10 @@ def upload_file():
         return jsonify({"error": "No file selected for uploading"}), 400
     if file and allowed_file(file.filename):
         # generate a random filename
+        print('loading file')
         filename = Path(str(uuid.uuid4()) + ".txt")
         f_path = Path(app.config["UPLOAD_FOLDER"]) / filename
-        with f_path.open('w') as open_file:
-            file.save(open_file)
+        file.save(f_path)
         print('saved file locally')
         # scrub the file and save the scrubbed copy
         # generate random scrub filename
