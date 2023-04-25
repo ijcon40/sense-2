@@ -1,6 +1,7 @@
 import numpy as np
 from multiprocessing import Pool
 import nltk
+from tqdm import tqdm
 
 
 def tok_w_i(il):
@@ -22,7 +23,7 @@ def get_occurrences(file_in, limit=2000, workers=48):
     counts = dict()
     with file_in.open() as f:
         with Pool(workers) as p:
-            for i, line in p.map(tok_w_i, enumerate(f)):
+            for i, line in tqdm(p.map(tok_w_i, enumerate(f))):
                 for tok in line:
                     if tok not in occurrences:
                         occurrences[tok] = set()
